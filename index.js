@@ -1,5 +1,5 @@
 import app from "./App.js";
-import { connectDB } from "./config/database.js";
+import { connectDB } from "./Config/database.js";
 
 connectDB();
 app.listen(process.env.PORT, () => {
