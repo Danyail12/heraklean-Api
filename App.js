@@ -7,6 +7,7 @@ import mongoose from "mongoose";
 import passport from "passport";
 import session from "express-session";
 import TrainerRoutes from "./Routes/TrainerRoutes.js";
+import ClientRoutes from "./Routes/ClientRoutes.js"
 
 
 
@@ -26,6 +27,7 @@ const corsOptions = {
     app.use(cors(corsOptions))
 
     app.use('/api/auth',TrainerRoutes );
+    app.use("/api/",ClientRoutes);
 
 app.get("/", (req, res) => {
     res.send("Server is working");

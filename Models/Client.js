@@ -50,7 +50,24 @@ const clientSchema = new mongoose.Schema({
   trainer: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Trainer'
-  }
+  },
+  password:{
+    type:String
+  },
+  commingMeeting:[{
+    type:Object
+  }],
+
+  weightGraph:{
+        type:String
+  },
+  weight:{
+    type:Number
+  },
+  notification:{
+    type:String
+  },
+
 });
 
 const Client = mongoose.model('Client', clientSchema);
