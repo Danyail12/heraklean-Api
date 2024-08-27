@@ -101,6 +101,13 @@ export const login = async (req, res) => {
   }
 };
 
+export const logout = async (req, res) => {
+    res.clearCookie('token');
+    res.status(200).json({
+      message: 'Logout successful',
+      success: true
+    });
+  }
 // You can add more client-related controller functions here as needed
 
 
@@ -224,6 +231,39 @@ export const getActivePlans = async (req, res) => {
       res.status(200).json({ message: 'Password reset successful' });
     } catch (error) {
       console.error('Error in reset password:', error);
+      res.status(500).json({ message: 'Server error' });
+    }
+  };
+
+
+  export const changePassword = async (req, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      const clientId = req.client.id; // Assuming you have middleware that sets req.client
+  
+      // Find the client by ID
+      const client = await Client.findById(clientId);
+      if (!client) {
+        return res.status(404).json({ message: 'Client not found' });
+      }
+  
+      // Check if the current password is correct
+      const isMatch = await bcrypt.compare(currentPassword, client.password);
+      if (!isMatch) {
+        return res.status(400).json({ message: 'Current password is incorrect' });
+      }
+  
+      // Hash the new password
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(newPassword, salt);
+  
+      // Update the client's password
+      client.password = hashedPassword;
+      await client.save();
+  
+      res.status(200).json({ message: 'Password changed successfully' });
+    } catch (error) {
+      console.error('Error in change password:', error);
       res.status(500).json({ message: 'Server error' });
     }
   };
