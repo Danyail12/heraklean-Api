@@ -22,7 +22,17 @@ const trainerSchema = new mongoose.Schema({
   }],
   client:[{
     type:Object,
-  }]
+  }],
+  commingMeeting: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Meeting'
+  }],
+  notification: [{
+    type: String
+  }],
+  meetingRequest:[{
+    type:Object,
+  }],
 });
 
 const Trainer = mongoose.model('Trainer', trainerSchema);

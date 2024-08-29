@@ -3,6 +3,7 @@ import Client from './../Models/Client.js';
 import DietPlan from './../Models/DietPlan.js';
 import ProgramPlan from './../Models/ProgramPlan.js';
 import WeightEntry from './../Models/WeightGraph.js';
+import Meeting from './../Models/Meeting.js';
 import { sendMail } from './../Helper/sendMail.js';
 // import nodemailer from 'nodemailer';
 import mongoose from 'mongoose';
@@ -624,5 +625,56 @@ export const createClient = async (req, res) => {
             } catch (error) {
               console.error('Error resetting password:', error);
               res.status(500).json({ message: 'Error processing request', error: error.message });
+            }
+          };
+
+          export const approveMeetingRequest = async (req, res) => {
+            try {
+              const { trainerId, meetingRequestId } = req.body;
+              const trainer = await Trainer.findById(trainerId);
+          
+              if (!trainer) {
+                return res.status(404).json({ success: false, message: 'Trainer not found' });
+              }
+          
+              // Find the meeting request in the trainer's meetingRequest array
+              const meetingRequestIndex = trainer.meetingRequest.findIndex(
+                request => request._id.toString() === meetingRequestId
+              );
+          
+              if (meetingRequestIndex === -1) {
+                return res.status(404).json({ success: false, message: 'Meeting request not found' });
+              }
+          
+              const meetingRequest = trainer.meetingRequest[meetingRequestIndex];
+          
+              // Create new meeting
+              const newMeeting = new Meeting({
+                client: meetingRequest.client,
+                trainer: meetingRequest.trainer,
+                day: meetingRequest.day,
+                time: meetingRequest.time,
+                trainingType: meetingRequest.trainingType,
+                isRecurring: meetingRequest.isRecurring
+              });
+              await newMeeting.save();
+          
+              // Update client with new meeting and notification
+              const client = await Client.findById(meetingRequest.client);
+              const notificationMessage = `Meeting approved for ${meetingRequest.day} at ${meetingRequest.time} with Trainer ${trainer.Fname}`;
+              await Client.findByIdAndUpdate(meetingRequest.client, {
+                $push: { commingMeeting: newMeeting._id, notification: notificationMessage }
+              });
+          
+              // Update trainer with new meeting and remove the meeting request
+              await Trainer.findByIdAndUpdate(trainerId, {
+                $push: { commingMeeting: newMeeting._id, notification: notificationMessage },
+                $pull: { meetingRequest: { _id: meetingRequestId } }
+              });
+          
+              res.status(200).json({ success: true, message: 'Meeting request approved', meeting: newMeeting });
+            } catch (error) {
+              console.error(error);
+              res.status(500).json({ success: false, message: 'Error approving meeting request', error: error.message });
             }
           };

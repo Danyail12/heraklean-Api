@@ -73,7 +73,10 @@ const clientSchema = new mongoose.Schema({
 
   workout:[{
     type:Object,
-  }]
+  }],
+  meetingRequest:[{
+    type:Object,
+  }],
 
 });
 

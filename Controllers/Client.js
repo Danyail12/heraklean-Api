@@ -311,58 +311,43 @@ export const getActivePlans = async (req, res) => {
 export const createMeeting = async (req, res) => {
   try {
     const { clientId, trainerId, day, time, trainingType, isRecurring } = req.body;
-
     const client = await Client.findById(clientId);
     const trainer = await Trainer.findById(trainerId);
-    console.log(client, trainer);
 
-    // Create new meeting
-    const newMeeting = new Meeting({
+    if (!client || !trainer) {
+      return res.status(404).json({ success: false, message: 'Client or trainer not found' });
+    }
+
+    // Create meeting request object
+    const meetingRequest = {
       client: clientId,
       trainer: trainerId,
       day,
       time,
       trainingType,
-      isRecurring
-    });
+      isRecurring,
+      status: 'pending'
+    };
 
-    await newMeeting.save();
+    // Add meeting request to trainer's meetingRequest array
+    await Trainer.findByIdAndUpdate(trainerId, {
+      $push: { meetingRequest: meetingRequest }
+    });
 
     // Create notification message
-    const notificationMessage = `New meeting scheduled on ${day} at ${time} with Trainer ${trainer.Fname} and Client ${client.fullname}`;
+    const notificationMessage = `New meeting request from ${client.fullname} for ${day} at ${time}`;
 
-    // Update client with new meeting and notification
-    await Client.findByIdAndUpdate(clientId, {
-      $push: { 
-        commingMeeting: newMeeting._id,
-        notification: notificationMessage
-      }
-    });
-
-    // Update trainer with new meeting and notification
+    // Add notification to trainer
     await Trainer.findByIdAndUpdate(trainerId, {
-      $push: { 
-        commingMeeting: newMeeting._id,
-        notification: notificationMessage
-      }
+      $push: { notification: notificationMessage }
     });
 
-    res.status(201).json({
-      success: true,
-      message: 'Meeting created successfully',
-      meeting: newMeeting
-    });
-
+    res.status(201).json({ success: true, message: 'Meeting request sent successfully', meetingRequest });
   } catch (error) {
     console.error(error);
-    res.status(500).json({
-      success: false,
-      message: 'Error creating meeting',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: 'Error creating meeting request', error: error.message });
   }
-};
-export const rescheduleMeeting = async (req, res) => {
+};export const rescheduleMeeting = async (req, res) => {
   try {
     const { meetingId, newDay, newTime } = req.body;
 
