@@ -25,12 +25,10 @@ const clientSchema = new mongoose.Schema({
     type: String,
   },
   ActivePlan: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'ProgramPlan'
+    type:Object,
   }],
   ActiveNutrition: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'DietPlan'
+    type:Object,
   }],
   measurements: {
     chestBack: { type: String, default: "0" },
@@ -61,12 +59,21 @@ const clientSchema = new mongoose.Schema({
   weightGraph:{
         type:String
   },
-  weight:{
-    type:Number
-  },
+  weight:[{
+    type:Object,
+  }]
+
+  ,
   notification:{
     type:String
   },
+  diet:[{
+    type:Object,
+  }],
+
+  workout:[{
+    type:Object,
+  }]
 
 });
 

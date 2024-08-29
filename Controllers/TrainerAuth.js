@@ -4,10 +4,11 @@ import DietPlan from './../Models/DietPlan.js';
 import ProgramPlan from './../Models/ProgramPlan.js';
 import WeightEntry from './../Models/WeightGraph.js';
 import { sendMail } from './../Helper/sendMail.js';
-import nodemailer from 'nodemailer';
+// import nodemailer from 'nodemailer';
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+// import { hash } from 'crypto';
 
 
 
@@ -91,54 +92,84 @@ export const login = async (req, res) => {
       res.status(500).send('Server error');
     }
 };  
-
-
-
 export const createClient = async (req, res) => {
-    const { profilePic, startingWeight, attachDiet, attachProgram, fullname, subamount, email } = req.body;
-    const trainerId = req.trainer; // Ensure this is the correct field
-  
-    try {
-      // Check if the email is already in use
-      if (email) {
-        const existingClient = await Client.findOne({ email });
-        if (existingClient) {
-          return res.status(400).json({ message: 'Client with this email already exists' });
-        }
-      }
-  
-      const client = new Client({
-        profilePic,
-        startingWeight,
-        attachDiet,
-        attachProgram,
-        fullname,
-        subamount,
-        email,
-        trainer: trainerId ,
-        ActiveNutrition:attachDiet,
-        ActiveProgram:attachProgram,
-      });
-  
-      await client.save();
-      await Trainer.findByIdAndUpdate(trainerId, {
-        $push: { clients: client._id }
-      });
+  const { 
+    profilePic, 
+    startingWeight, 
+    attachDietId, 
+    attachProgramId, 
+    fullname, 
+    subamount, 
+    email, 
+    password 
+  } = req.body;
+  const trainerId = req.trainer._id; // Assuming the trainer ID is available in the request
 
-  
-      res.status(201).json({
-        message: 'Client created successfully',
-        success: true,
-        client
-      });
-
-
-    } catch (error) {
-      console.error(error.message);
-      res.status(500).send('Server error');
+  try {
+    // Check if client already exists
+    let client = await Client.findOne({ email });
+    if (client) {
+      return res.status(400).json({ message: 'Client with this email already exists' });
     }
-  };
-  
+
+    // Hash the password
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    // Fetch the selected diet and program plans
+    const dietPlan = await DietPlan.findById(attachDietId);
+    const programPlan = await ProgramPlan.findById(attachProgramId);
+
+    if (!dietPlan || !programPlan) {
+      return res.status(400).json({ message: 'Invalid diet or program plan selected' });
+    }
+
+    // Create a new client
+    client = new Client({
+      profilePic,
+      startingWeight,
+      attachDiet: [attachDietId],
+      attachProgram: [attachProgramId],
+      fullname,
+      subamount,
+      email,
+      password: hashedPassword,
+      trainer: trainerId,
+      ActiveNutrition: [dietPlan],
+      ActivePlan: [programPlan],
+    });
+
+    await client.save();
+
+    // Add this client to the trainer's list of clients
+    await Trainer.findByIdAndUpdate(trainerId, {
+      $push: { 
+        clients: client._id,
+        client: {
+          _id: client._id,
+          fullname: client.fullname,
+          email: client.email,
+          profilePic: client.profilePic
+        }
+      },
+    });
+
+    // Remove password from the response
+    client = client.toObject();
+    delete client.password;
+
+    res.status(201).json({
+      message: 'Client created successfully',
+      success: true,
+      client,
+    });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send('Server error');
+  }
+};    
+
+   
   export const createDietPlan = async (req, res) => {
     const { dietTitle, meal1, meal2, meal3 } = req.body;
     const trainer = req.trainer;

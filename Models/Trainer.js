@@ -19,6 +19,9 @@ const trainerSchema = new mongoose.Schema({
   clients: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Client'
+  }],
+  client:[{
+    type:Object,
   }]
 });
 

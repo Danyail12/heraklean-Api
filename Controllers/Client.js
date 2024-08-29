@@ -1,11 +1,11 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import Client from '../Models/Client.js';
-import crypto from 'crypto';
+// import crypto from 'crypto';
 import { sendMail } from './../Helper/sendMail.js';
-import nodemailer from 'nodemailer';
-import mongoose from 'mongoose';
-import { token } from 'morgan';
+// import nodemailer from 'nodemailer';
+// import mongoose from 'mongoose';
+// import { token } from 'morgan';
 
 export const register = async (req, res) => {
   const { fullname, email, password, confirmPassword } = req.body;
@@ -112,36 +112,34 @@ export const logout = async (req, res) => {
 
 
 export const getActivePlans = async (req, res) => {
-    try {
-      const clientId = req.client.clientId; // Assuming you're using the clientAuthMiddleware
-  
-      const client = await Client.findById(clientId)
-        .populate('ActivePlan')
-        
-  
-      if (!client) {
-        return res.status(404).json({ message: 'Client not found' });
-      }
-  
-      res.status(200).json({
-        status:200,
-        success: true,
-        activePlan: client.ActivePlan,
-        
-      });
-    } catch (error) {
-      console.error('Error fetching active plans:', error);
-      res.status(500).json({ message: 'Server error' });
-    }
-  };
+  try {
+    // Retrieve the authenticated client's ID from the request object
+    const clientId = req.client._id;
 
+    // Find the client by ID and populate the ActivePlan field with the related ProgramPlan documents
+    const client = await Client.findById(clientId).populate('ActivePlan');
+
+    if (!client) {
+      return res.status(404).json({ message: 'Client not found' });
+    }
+
+    // Send back the populated active plans
+    res.json({
+      success: true,
+      workout: client.ActivePlan
+    });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
 
   export const getActiveNutrition = async (req, res) => {
     try {
-      const clientId = req.client.clientId; // Assuming you're using the clientAuthMiddleware
-  
+      const clientId = req.client._id;
+
       const client = await Client.findById(clientId)
-        .populate('ActiveNutrition');
+      .populate('ActiveNutrition');
   
       if (!client) {
         return res.status(404).json({ message: 'Client not found' });
@@ -267,3 +265,46 @@ export const getActivePlans = async (req, res) => {
       res.status(500).json({ message: 'Server error' });
     }
   };
+
+  export const updateClientProfile = async (req, res) => {
+    try {
+        const clientId = req.client.id; // Assuming you have middleware that sets req.client
+
+        // Find the client by ID
+        const client = await Client.findById(clientId);
+        if (!client) {
+            return res.status(404).json({ message: 'Client not found' });
+        }
+
+        // Update client's profile
+        if (req.body.Fname) client.Fname = req.body.Fname;
+        if (req.body.lastName) client.lastName = req.body.lastName;
+        if (req.body.email) client.email = req.body.email;
+        if (req.body.location) client.location = req.body.location;
+        if (req.body.title) client.title = req.body.title;
+        if (req.body.profilePic) client.profilePic = req.body.profilePic;
+
+        // Update weight according to date
+        if (req.body.weight) {
+            const { date, weight } = req.body.weight;
+            const weightEntry = client.weight.find(entry => 
+                new Date(entry.date).toDateString() === new Date(date).toDateString()
+            );
+
+            if (weightEntry) {
+                // Update existing weight entry
+                weightEntry.weight = weight;
+            } else {
+                // Add new weight entry
+                client.weight.push({ date, weight });
+            }
+        }
+
+        await client.save();
+
+        res.status(200).json({ message: 'Profile updated successfully' });
+    } catch (error) {
+        console.error('Error in update client profile:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};

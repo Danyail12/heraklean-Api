@@ -1,5 +1,5 @@
 import express from 'express';
-import { register, login,getActiveNutrition,getActivePlans,forgetPassword, resetPassword ,changePassword,logout
+import { register, login,getActiveNutrition,getActivePlans,forgetPassword, resetPassword ,changePassword,logout,updateClientProfile
 } from '../Controllers/Client.js';
 import {clientAuthMiddleware} from '../Middlewares/authMiddleware.js';
 const router = express.Router();
@@ -21,4 +21,5 @@ router.get("/getActiveNutrition",clientAuthMiddleware,getActiveNutrition);
 router.post('/forget-password', forgetPassword);
 router.post('/reset-password', resetPassword);
 router.put('/changePassword',clientAuthMiddleware,changePassword)
+router.put('/updateClientProfile',clientAuthMiddleware,updateClientProfile)
 export default router;
