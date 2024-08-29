@@ -1,11 +1,10 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import Client from '../Models/Client.js';
-// import crypto from 'crypto';
+import Meeting from '../Models/Meeting.js';
+import Trainer from '../Models/Trainer.js';
 import { sendMail } from './../Helper/sendMail.js';
-// import nodemailer from 'nodemailer';
-// import mongoose from 'mongoose';
-// import { token } from 'morgan';
+
 
 export const register = async (req, res) => {
   const { fullname, email, password, confirmPassword } = req.body;
@@ -307,4 +306,181 @@ export const getActivePlans = async (req, res) => {
         console.error('Error in update client profile:', error);
         res.status(500).json({ message: 'Server error' });
     }
+};
+
+export const createMeeting = async (req, res) => {
+  try {
+    const { clientId, trainerId, day, time, trainingType, isRecurring } = req.body;
+
+    const client = await Client.findById(clientId);
+    const trainer = await Trainer.findById(trainerId);
+    console.log(client, trainer);
+
+    // Create new meeting
+    const newMeeting = new Meeting({
+      client: clientId,
+      trainer: trainerId,
+      day,
+      time,
+      trainingType,
+      isRecurring
+    });
+
+    await newMeeting.save();
+
+    // Create notification message
+    const notificationMessage = `New meeting scheduled on ${day} at ${time} with Trainer ${trainer.Fname} and Client ${client.fullname}`;
+
+    // Update client with new meeting and notification
+    await Client.findByIdAndUpdate(clientId, {
+      $push: { 
+        commingMeeting: newMeeting._id,
+        notification: notificationMessage
+      }
+    });
+
+    // Update trainer with new meeting and notification
+    await Trainer.findByIdAndUpdate(trainerId, {
+      $push: { 
+        commingMeeting: newMeeting._id,
+        notification: notificationMessage
+      }
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Meeting created successfully',
+      meeting: newMeeting
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: 'Error creating meeting',
+      error: error.message
+    });
+  }
+};
+export const rescheduleMeeting = async (req, res) => {
+  try {
+    const { meetingId, newDay, newTime } = req.body;
+
+    // Find the meeting
+    const meeting = await Meeting.findById(meetingId);
+    if (!meeting) {
+      return res.status(404).json({
+        success: false,
+        message: 'Meeting not found'
+      });
+    }
+
+    // Get client and trainer details
+    const client = await Client.findById(meeting.client);
+    const trainer = await Trainer.findById(meeting.trainer);
+
+    if (!client || !trainer) {
+      return res.status(404).json({
+        success: false,
+        message: 'Client or Trainer not found'
+      });
+    }
+
+    // Update meeting details
+    meeting.day = newDay;
+    meeting.time = newTime;
+    await meeting.save();
+
+    // Create notification message
+    const notificationMessage = `Meeting rescheduled to ${newDay} at ${newTime} with Trainer ${trainer.Fname} and Client ${client.fullname}`;
+
+    // Update client with notification
+    await Client.findByIdAndUpdate(client._id, {
+      $push: { 
+        notification: notificationMessage
+      }
+    });
+
+    // Update trainer with notification
+    await Trainer.findByIdAndUpdate(trainer._id, {
+      $push: { 
+        notification: notificationMessage
+      }
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Meeting rescheduled successfully',
+      meeting: meeting
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: 'Error rescheduling meeting',
+      error: error.message
+    });
+  }
+};
+
+export const getUpcomingMeetingsForClient = async (req, res) => {
+  try {
+    const clientId = req.client.id;
+
+    // Find the client
+    const client = await Client.findById(clientId);
+
+    if (!client) {
+      return res.status(404).json({
+        success: false,
+        message: 'Client not found'
+      });
+    }
+
+    console.log('Client commingMeeting IDs:', client.commingMeeting);
+
+    // Fetch all meetings from the Meeting collection without date filter
+    const allMeetings = await Meeting.find({
+      _id: { $in: client.commingMeeting }
+    }).sort({ day: 1, time: 1 })
+      .populate('trainer', 'Fname Lname email')
+      .lean();
+
+    console.log('Fetched all meetings:', JSON.stringify(allMeetings, null, 2));
+
+    // Format all the meetings data
+    const formattedMeetings = allMeetings.map(meeting => ({
+      _id: meeting._id,
+      day: meeting.day,
+      time: meeting.time,
+      trainingType: meeting.trainingType,
+      isRecurring: meeting.isRecurring,
+      trainer: meeting.trainer ? {
+        name: `${meeting.trainer.Fname} ${meeting.trainer.Lname}`,
+        email: meeting.trainer.email
+      } : null
+    }));
+
+    // Separate upcoming meetings (if needed)
+    const now = new Date();
+    const upcomingMeetings = formattedMeetings.filter(meeting => new Date(meeting.day) >= now);
+
+    res.status(200).json({
+      success: true,
+      message: 'All meetings fetched successfully',
+      allMeetings: formattedMeetings,
+      upcomingMeetings: upcomingMeetings,
+      totalMeetings: formattedMeetings.length,
+      upcomingMeetingsCount: upcomingMeetings.length
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching meetings',
+      error: error.message
+    });
+  }
 };

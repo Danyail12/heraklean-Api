@@ -1,5 +1,5 @@
 import express from 'express';
-import { register, login,getActiveNutrition,getActivePlans,forgetPassword, resetPassword ,changePassword,logout,updateClientProfile
+import { register, login,getActiveNutrition,getActivePlans,forgetPassword, resetPassword ,changePassword,logout,updateClientProfile,createMeeting,rescheduleMeeting,getUpcomingMeetingsForClient
 } from '../Controllers/Client.js';
 import {clientAuthMiddleware} from '../Middlewares/authMiddleware.js';
 const router = express.Router();
@@ -22,4 +22,7 @@ router.post('/forget-password', forgetPassword);
 router.post('/reset-password', resetPassword);
 router.put('/changePassword',clientAuthMiddleware,changePassword)
 router.put('/updateClientProfile',clientAuthMiddleware,updateClientProfile)
+router.post('/createMeeting',clientAuthMiddleware,createMeeting)
+router.post('/rescheduleMeeting',clientAuthMiddleware,rescheduleMeeting)
+router.get('/getUpcomingMeetingsForClient',clientAuthMiddleware,getUpcomingMeetingsForClient)
 export default router;

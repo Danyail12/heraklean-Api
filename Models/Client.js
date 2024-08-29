@@ -52,10 +52,13 @@ const clientSchema = new mongoose.Schema({
   password:{
     type:String
   },
-  commingMeeting:[{
-    type:Object
+  commingMeeting: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Meeting'
   }],
-
+  notification: [{
+    type: String
+  }],
   weightGraph:{
         type:String
   },
@@ -64,9 +67,6 @@ const clientSchema = new mongoose.Schema({
   }]
 
   ,
-  notification:{
-    type:String
-  },
   diet:[{
     type:Object,
   }],
