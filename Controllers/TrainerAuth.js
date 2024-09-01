@@ -637,9 +637,14 @@ export const createClient = async (req, res) => {
                 return res.status(404).json({ success: false, message: 'Trainer not found' });
               }
           
+              // Check if meetingRequest exists and is an array
+              if (!trainer.meetingRequest || !Array.isArray(trainer.meetingRequest)) {
+                return res.status(400).json({ success: false, message: 'Trainer has no meeting requests' });
+              }
+          
               // Find the meeting request in the trainer's meetingRequest array
               const meetingRequestIndex = trainer.meetingRequest.findIndex(
-                request => request._id.toString() === meetingRequestId
+                request => request._id && request._id.toString() === meetingRequestId
               );
           
               if (meetingRequestIndex === -1) {
@@ -648,19 +653,20 @@ export const createClient = async (req, res) => {
           
               const meetingRequest = trainer.meetingRequest[meetingRequestIndex];
           
-              // Create new meeting
+              // Create new meeting with correct status
               const newMeeting = new Meeting({
                 client: meetingRequest.client,
                 trainer: meetingRequest.trainer,
                 day: meetingRequest.day,
                 time: meetingRequest.time,
                 trainingType: meetingRequest.trainingType,
-                isRecurring: meetingRequest.isRecurring
+                isRecurring: meetingRequest.isRecurring,
+                status: 'Approved' // Correctly set the status to a valid enum value
               });
+              
               await newMeeting.save();
           
               // Update client with new meeting and notification
-              const client = await Client.findById(meetingRequest.client);
               const notificationMessage = `Meeting approved for ${meetingRequest.day} at ${meetingRequest.time} with Trainer ${trainer.Fname}`;
               await Client.findByIdAndUpdate(meetingRequest.client, {
                 $push: { commingMeeting: newMeeting._id, notification: notificationMessage }
@@ -678,3 +684,4 @@ export const createClient = async (req, res) => {
               res.status(500).json({ success: false, message: 'Error approving meeting request', error: error.message });
             }
           };
+          

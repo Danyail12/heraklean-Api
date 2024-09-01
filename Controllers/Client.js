@@ -3,7 +3,9 @@ import jwt from 'jsonwebtoken';
 import Client from '../Models/Client.js';
 import Meeting from '../Models/Meeting.js';
 import Trainer from '../Models/Trainer.js';
+import workoutSetSchema from '../Models/WorkoutSet.js';
 import { sendMail } from './../Helper/sendMail.js';
+import mongoose from 'mongoose';
 
 
 export const register = async (req, res) => {
@@ -318,15 +320,16 @@ export const createMeeting = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Client or trainer not found' });
     }
 
-    // Create meeting request object
+    // Create meeting request object with a new _id
     const meetingRequest = {
+      _id: new mongoose.Types.ObjectId(), // Generate a new ObjectId
       client: clientId,
       trainer: trainerId,
       day,
       time,
       trainingType,
       isRecurring,
-      status: 'pending'
+      status: 'pending',
     };
 
     // Add meeting request to trainer's meetingRequest array
@@ -347,7 +350,8 @@ export const createMeeting = async (req, res) => {
     console.error(error);
     res.status(500).json({ success: false, message: 'Error creating meeting request', error: error.message });
   }
-};export const rescheduleMeeting = async (req, res) => {
+};
+export const rescheduleMeeting = async (req, res) => {
   try {
     const { meetingId, newDay, newTime } = req.body;
 
@@ -467,5 +471,228 @@ export const getUpcomingMeetingsForClient = async (req, res) => {
       message: 'Error fetching meetings',
       error: error.message
     });
+  }
+};
+
+
+export const cancelMeeting = async (req, res) => {
+  try {
+    const { meetingId, clientId, reason } = req.body;
+
+    // Find the meeting
+    const meeting = await Meeting.findById(meetingId);
+    if (!meeting) {
+      return res.status(404).json({ success: false, message: 'Meeting not found' });
+    }
+
+    // Ensure the client canceling the meeting is the one associated with it
+    if (meeting.client.toString() !== clientId) {
+      return res.status(403).json({ success: false, message: 'Unauthorized to cancel this meeting' });
+    }
+
+    // Create notification message
+    const notificationMessage = `Meeting on ${meeting.day} at ${meeting.time} has been canceled. Reason: ${reason}`;
+
+    // Update client
+    await Client.findByIdAndUpdate(clientId, {
+      $pull: { commingMeeting: meetingId },
+      $push: { notification: notificationMessage }
+    });
+
+    // Update trainer
+    await Trainer.findByIdAndUpdate(meeting.trainer, {
+      $pull: { commingMeeting: meetingId },
+      $push: { notification: notificationMessage }
+    });
+
+    // Delete the meeting
+    await Meeting.findByIdAndDelete(meetingId);
+
+    res.status(200).json({ success: true, message: 'Meeting canceled successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Error canceling meeting', error: error.message });
+  }
+};
+
+
+export const addWorkout = async (req, res) => {
+  try {
+    const { clientId, workoutDate, exercises } = req.body;
+
+    // Validate client
+    const client = await Client.findById(clientId);
+    if (!client) {
+      return res.status(404).json({ success: false, message: 'Client not found' });
+    }
+
+    const parsedWorkoutDate = new Date(workoutDate);
+
+    // Create a single workout object
+    const workout = {
+      date: parsedWorkoutDate,
+      exercises: exercises.map(exercise => ({
+        exercise: exercise.exercise,
+        sets: exercise.sets.map((set, index) => ({  // Add index here
+          setNumber: index + 1, // Correctly use index
+          weight: set.weight,
+          reps: set.reps,
+          done: set.done
+        }))
+      }))
+    };
+
+    // Add workout to client's workout array
+    await Client.findByIdAndUpdate(clientId, {
+      $push: { workout: workout }
+    });
+
+    res.status(200).json({ success: true, message: 'Workout added successfully', workout });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Error adding workout', error: error.message });
+  }
+};
+
+export const addWeightEntry = async (req, res) => {
+  try {
+    const { clientId, date, weight } = req.body;
+
+    const client = await Client.findById(clientId);
+    if (!client) {
+      return res.status(404).json({ success: false, message: 'Client not found' });
+    }
+
+    const newEntry = {
+      date: new Date(date),
+      weight: weight
+    };
+
+    // Initialize weightGraph if it's undefined
+    if (!client.weightGraph) {
+      client.weightGraph = [];
+    }
+
+    // Add the new entry to the weightGraph array
+    client.weightGraph.push(newEntry);
+    await client.save();
+
+    res.status(200).json({ success: true, message: 'Weight entry added successfully', entry: newEntry });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Error adding weight entry', error: error.message });
+  }
+};
+
+
+export const getWeightEntries = async (req, res) => {
+  try {
+    const { id } = req.params; // Use 'id' to match the route parameter
+
+    console.log('Received clientId:', id); // Log the clientId
+
+    const client = await Client.findById(id);
+    
+    // Log the client object to see what is being retrieved
+    console.log('Retrieved client:', client);
+
+    if (!client) {
+      return res.status(404).json({ success: false, message: 'Client not found' });
+    }
+
+    // Sort weightEntries by date
+    const weightEntries = client.weightGraph.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    res.status(200).json({ success: true, weightEntries });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Error retrieving weight entries', error: error.message });
+  }
+};
+
+
+
+
+// Update a weight entry
+export const updateWeightEntry = async (req, res) => {
+  try {
+    const { clientId, entryId, weight } = req.body;
+
+    const client = await Client.findById(clientId);
+    if (!client) {
+      return res.status(404).json({ success: false, message: 'Client not found' });
+    }
+
+    const entry = client.weightGraph.id(entryId);
+    if (!entry) {
+      return res.status(404).json({ success: false, message: 'Weight entry not found' });
+    }
+
+    entry.weight = weight;
+    await client.save();
+
+    res.status(200).json({ success: true, message: 'Weight entry updated successfully', entry });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Error updating weight entry', error: error.message });
+  }
+};
+
+// Delete a weight entry
+export const deleteWeightEntry = async (req, res) => {
+  try {
+    const { clientId, entryId } = req.params;
+
+    const client = await Client.findById(clientId);
+    if (!client) {
+      return res.status(404).json({ success: false, message: 'Client not found' });
+    }
+
+    client.weightGraph.id(entryId).remove();
+    await client.save();
+
+    res.status(200).json({ success: true, message: 'Weight entry deleted successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Error deleting weight entry', error: error.message });
+  }
+};
+
+
+export const getAllNotifications = async (req, res) => {
+  try {
+    const { clientId } = req.params;
+    const { page = 1, limit = 10, sort = 'desc', type } = req.query;
+
+    const client = await Client.findById(clientId);
+    if (!client) {
+      return res.status(404).json({ success: false, message: 'Client not found' });
+    }
+
+    let notifications = client.notification;
+
+    // Filter by type if provided
+    if (type) {
+      notifications = notifications.filter(notification => notification.type === type);
+    }
+
+    // Sort notifications
+    notifications.sort((a, b) => sort === 'desc' ? b.date - a.date : a.date - b.date);
+
+    // Paginate results
+    const startIndex = (page - 1) * limit;
+    const endIndex = page * limit;
+    const paginatedNotifications = notifications.slice(startIndex, endIndex);
+
+    res.status(200).json({ 
+      success: true, 
+      notifications: paginatedNotifications,
+      totalNotifications: notifications.length,
+      currentPage: page,
+      totalPages: Math.ceil(notifications.length / limit)
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Error retrieving notifications', error: error.message });
   }
 };

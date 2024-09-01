@@ -1,5 +1,8 @@
 import express from 'express';
-import { register, login,getActiveNutrition,getActivePlans,forgetPassword, resetPassword ,changePassword,logout,updateClientProfile,createMeeting,rescheduleMeeting,getUpcomingMeetingsForClient
+import { register, login,getActiveNutrition,getActivePlans,forgetPassword,
+   resetPassword ,changePassword,logout,updateClientProfile,createMeeting,
+   rescheduleMeeting,getUpcomingMeetingsForClient,cancelMeeting,addWorkout,
+   addWeightEntry,getWeightEntries,updateWeightEntry,getAllNotifications
 } from '../Controllers/Client.js';
 import {clientAuthMiddleware} from '../Middlewares/authMiddleware.js';
 const router = express.Router();
@@ -25,4 +28,11 @@ router.put('/updateClientProfile',clientAuthMiddleware,updateClientProfile)
 router.post('/createMeeting',clientAuthMiddleware,createMeeting)
 router.post('/rescheduleMeeting',clientAuthMiddleware,rescheduleMeeting)
 router.get('/getUpcomingMeetingsForClient',clientAuthMiddleware,getUpcomingMeetingsForClient)
+router.post('/cancel-meeting',clientAuthMiddleware ,cancelMeeting);
+router.post('/addWorkout',clientAuthMiddleware,addWorkout);
+router.post('/addWeightEntry',clientAuthMiddleware,addWeightEntry);
+router.get('/getWeightEntries/:id',clientAuthMiddleware,getWeightEntries);
+router.put('/updateWeightEntry',clientAuthMiddleware,updateWeightEntry);
+router.get('/getAllNotifications/:clientId',clientAuthMiddleware,getAllNotifications)
+
 export default router;
