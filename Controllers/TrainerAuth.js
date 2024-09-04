@@ -101,21 +101,13 @@ export const createClient = async (req, res) => {
     attachProgramId, 
     fullname, 
     subamount, 
-    email, 
-    password 
+    email 
   } = req.body;
   const trainerId = req.trainer._id; // Assuming the trainer ID is available in the request
 
   try {
     // Check if client already exists
     let client = await Client.findOne({ email });
-    if (client) {
-      return res.status(400).json({ message: 'Client with this email already exists' });
-    }
-
-    // Hash the password
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
 
     // Fetch the selected diet and program plans
     const dietPlan = await DietPlan.findById(attachDietId);
@@ -125,42 +117,80 @@ export const createClient = async (req, res) => {
       return res.status(400).json({ message: 'Invalid diet or program plan selected' });
     }
 
-    // Create a new client
-    client = new Client({
-      profilePic,
-      startingWeight,
-      attachDiet: [attachDietId],
-      attachProgram: [attachProgramId],
-      fullname,
-      subamount,
-      email,
-      password: hashedPassword,
-      trainer: trainerId,
-      ActiveNutrition: [dietPlan],
-      ActivePlan: [programPlan],
-    });
+    if (client) {
+      // Update the existing client with new data
+      client.profilePic = profilePic;
+      client.startingWeight = startingWeight;
+      client.attachDiet.push(attachDietId);
+      client.attachProgram.push(attachProgramId);
+      client.fullname = fullname;
+      client.subamount = subamount;
+      client.trainer = trainerId;
+      client.ActiveNutrition.push(dietPlan);
+      client.ActivePlan.push(programPlan);
 
-    await client.save();
+      await client.save();
 
-    // Add this client to the trainer's list of clients
-    await Trainer.findByIdAndUpdate(trainerId, {
-      $push: { 
-        clients: client._id,
-        client: {
-          _id: client._id,
-          fullname: client.fullname,
-          email: client.email,
-          profilePic: client.profilePic
-        }
-      },
-    });
+      // Associate the client with the trainer if not already associated
+      await Trainer.findByIdAndUpdate(trainerId, {
+        $addToSet: { 
+          clients: client._id,
+          client: {
+            _id: client._id,
+            fullname: client.fullname,
+            email: client.email,
+            profilePic: client.profilePic,
+            subamount: client.subamount,
+            startingWeight: client.startingWeight,
+            attachDiet: client.attachDiet,
+            attachProgram: client.attachProgram,
+            ActiveNutrition: client.ActiveNutrition,
+            ActivePlan: client.ActivePlan,
+            trainer: client.trainer
+          }
+        },
+      });
 
-    // Remove password from the response
-    client = client.toObject();
-    delete client.password;
+    } else {
+      // Create a new client
+      client = new Client({
+        profilePic,
+        startingWeight,
+        attachDiet: [attachDietId],
+        attachProgram: [attachProgramId],
+        fullname,
+        subamount,
+        email,
+        trainer: trainerId,
+        ActiveNutrition: [dietPlan],
+        ActivePlan: [programPlan],
+      });
+
+      await client.save();
+
+      // Associate the new client with the trainer
+      await Trainer.findByIdAndUpdate(trainerId, {
+        $push: { 
+          clients: client._id,
+          client: {
+            _id: client._id,
+            fullname: client.fullname,
+            email: client.email,
+            profilePic: client.profilePic,
+            subamount: client.subamount,
+            startingWeight: client.startingWeight,
+            attachDiet: client.attachDiet,
+            attachProgram: client.attachProgram,
+            ActiveNutrition: client.ActiveNutrition,
+            ActivePlan: client.ActivePlan,
+            trainer: client.trainer
+          }
+        },
+      });
+    }
 
     res.status(201).json({
-      message: 'Client created successfully',
+      message: client ? 'Client updated successfully' : 'Client created successfully',
       success: true,
       client,
     });
@@ -168,68 +198,79 @@ export const createClient = async (req, res) => {
     console.error(error.message);
     res.status(500).send('Server error');
   }
-};    
+};
+   
 
    
-  export const createDietPlan = async (req, res) => {
-    const { dietTitle, meal1, meal2, meal3 } = req.body;
-    const trainer = req.trainer;
-  
-    try {
-      const dietPlan = new DietPlan({
-        dietTitle,
-        meal1,
-        meal2,
-        meal3
-      });
-  
-      await dietPlan.save();
-  
-      await Trainer.findByIdAndUpdate(trainer, {
-        $push: { dietPlans: dietPlan._id }
-      });
-  
-      res.status(201).json({
-        message: 'Diet Plan created successfully',
-        success: true,
-        dietPlan
-      });
-    } catch (error) {
-      console.error(error.message);
-      res.status(500).send('Server error');
-    }
-  };
+export const createDietPlan = async (req, res) => {
+  const { dietTitle, monday, tuesday, wednesday, thursday, friday, saturday, sunday } = req.body;
+  const trainer = req.trainer;
 
-  export const createProgramPlan = async (req, res) => {
-    const { title, description, modules, duration } = req.body;
-    const trainer = req.trainer; 
-  
-    try {
-      // Create a new program plan
-      const programPlan = new ProgramPlan({
-        title,
-        description,
-        modules,
-        duration
-      });
-  
-      await programPlan.save();
-  
-      // Associate program plan with the trainer
-      await Trainer.findByIdAndUpdate(trainer, {
-        $push: { programPlans: programPlan._id }
-      });
-  
-      res.status(201).json({
-        message: 'Program Plan created successfully',
-        success: true,
-        programPlan
-      });
-    } catch (error) {
-      console.error(error.message);
-      res.status(500).send('Server error');
-    }
-  };
+  try {
+    const dietPlan = new DietPlan({
+      dietTitle,
+      monday,
+      tuesday,
+      wednesday,
+      thursday,
+      friday,
+      saturday,
+      sunday
+    });
+
+    await dietPlan.save();
+
+    await Trainer.findByIdAndUpdate(trainer, {
+      $push: { dietPlans: dietPlan._id }
+    });
+
+    res.status(201).json({
+      message: 'Diet Plan created successfully',
+      success: true,
+      dietPlan
+    });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send('Server error');
+  }
+};
+
+
+export const createProgramPlan = async (req, res) => {
+  const { programTitle, monday, tuesday, wednesday, thursday, friday, saturday, sunday } = req.body;
+  const trainer = req.trainer; 
+
+  try {
+    // Create a new program plan with day-wise details
+    const programPlan = new ProgramPlan({
+      programTitle,
+      monday,
+      tuesday,
+      wednesday,
+      thursday,
+      friday,
+      saturday,
+      sunday
+    });
+
+    await programPlan.save();
+
+    // Associate the program plan with the trainer
+    await Trainer.findByIdAndUpdate(trainer, {
+      $push: { programPlans: programPlan._id }
+    });
+
+    res.status(201).json({
+      message: 'Program Plan created successfully',
+      success: true,
+      programPlan
+    });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send('Server error');
+  }
+};
+
 
   export const getTrainerDietPlans = async (req, res) => {
     try {

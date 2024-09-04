@@ -1,31 +1,31 @@
 import mongoose from 'mongoose';
 
+const mealSchema = new mongoose.Schema({
+  title: String,
+  description: String,
+  protein: Number,
+  calories: Number,
+  carb: Number
+});
+
+const dailyMealsSchema = new mongoose.Schema({
+  meal1: mealSchema,
+  meal2: mealSchema,
+  meal3: mealSchema
+});
+
 const dietPlanSchema = new mongoose.Schema({
   dietTitle: {
     type: String,
     required: true
   },
-  meal1: {
-    title: String,
-    description: String,
-    protein: Number,
-    calories: Number,
-    carb: Number
-  },  
-  meal2: {
-    title: String,
-    description: String,
-    protein: Number,
-    calories: Number,
-    carb: Number
-  },
-  meal3: {
-    title: String,
-    description: String,
-    protein: Number,
-    calories: Number,
-    carb: Number
-  }
+  monday: dailyMealsSchema,
+  tuesday: dailyMealsSchema,
+  wednesday: dailyMealsSchema,
+  thursday: dailyMealsSchema,
+  friday: dailyMealsSchema,
+  saturday: dailyMealsSchema,
+  sunday: dailyMealsSchema
 });
 
 const DietPlan = mongoose.model('DietPlan', dietPlanSchema);

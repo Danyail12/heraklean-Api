@@ -135,6 +135,43 @@ export const getActivePlans = async (req, res) => {
   }
 };
 
+export const getActivePlansdaywise = async (req, res) => {
+  try {
+    const clientId = req.client._id;
+    const { dayIndex } = req.query; // Assuming dayIndex is passed as a query parameter
+    const daysOfWeek = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+
+    if (dayIndex === undefined || dayIndex < 0 || dayIndex >= daysOfWeek.length) {
+      return res.status(400).json({ message: 'Invalid day index' });
+    }
+
+    const client = await Client.findById(clientId).populate('ActivePlan');
+
+    if (!client) {
+      return res.status(404).json({ message: 'Client not found' });
+    }
+
+    const currentDay = daysOfWeek[dayIndex];
+    const activePlan = client.ActivePlan.map(plan => ({
+      day: currentDay,
+      title: plan[currentDay]?.title || '',
+      description: plan[currentDay]?.description || '',
+      modules: plan[currentDay]?.modules || [],
+      duration: plan[currentDay]?.duration || ''
+    }));
+
+    res.status(200).json({
+      success: true,
+      workout: activePlan
+    });
+  } catch (error) {
+    console.error('Error fetching active plans:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+
+
   export const getActiveNutrition = async (req, res) => {
     try {
       const clientId = req.client._id;
@@ -156,6 +193,41 @@ export const getActivePlans = async (req, res) => {
     }
   };
 
+  export const getActiveNutritiondaywise = async (req, res) => {
+    try {
+      const clientId = req.client._id;
+      const { dayIndex } = req.query; // Assuming dayIndex is passed as a query parameter
+      const daysOfWeek = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+  
+      if (!dayIndex || dayIndex < 0 || dayIndex >= daysOfWeek.length) {
+        return res.status(400).json({ message: 'Invalid day index' });
+      }
+  
+      const client = await Client.findById(clientId)
+        .populate('ActiveNutrition');
+  
+      if (!client) {
+        return res.status(404).json({ message: 'Client not found' });
+      }
+  
+      const currentDay = daysOfWeek[dayIndex];
+      const activeNutrition = client.ActiveNutrition.map(plan => ({
+        day: currentDay,
+        meal1: plan[currentDay]?.meal1 || {},
+        meal2: plan[currentDay]?.meal2 || {},
+        meal3: plan[currentDay]?.meal3 || {}
+      }));
+  
+      res.status(200).json({
+        success: true,
+        activeNutrition
+      });
+    } catch (error) {
+      console.error('Error fetching active nutrition:', error);
+      res.status(500).json({ message: 'Server error' });
+    }
+  };
+  
 
   const generateResetToken = () => {
     return crypto.randomBytes(20).toString('hex');
@@ -278,11 +350,9 @@ export const getActivePlans = async (req, res) => {
         }
 
         // Update client's profile
-        if (req.body.Fname) client.Fname = req.body.Fname;
-        if (req.body.lastName) client.lastName = req.body.lastName;
+  
+        if(req.body.fullname) client.fullname = req.body.fullname;
         if (req.body.email) client.email = req.body.email;
-        if (req.body.location) client.location = req.body.location;
-        if (req.body.title) client.title = req.body.title;
         if (req.body.profilePic) client.profilePic = req.body.profilePic;
 
         // Update weight according to date

@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-const programPlanSchema = new mongoose.Schema({
+const dayPlanSchema = new mongoose.Schema({
   title: {
     type: String,
     required: true
@@ -17,6 +17,20 @@ const programPlanSchema = new mongoose.Schema({
     type: String, // E.g., "6 weeks"
     required: true
   }
+});
+
+const programPlanSchema = new mongoose.Schema({
+  programTitle: {
+    type: String,
+    required: true
+  },
+  monday: dayPlanSchema,
+  tuesday: dayPlanSchema,
+  wednesday: dayPlanSchema,
+  thursday: dayPlanSchema,
+  friday: dayPlanSchema,
+  saturday: dayPlanSchema,
+  sunday: dayPlanSchema
 });
 
 const ProgramPlan = mongoose.model('ProgramPlan', programPlanSchema);
