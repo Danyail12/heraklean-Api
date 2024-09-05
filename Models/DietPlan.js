@@ -5,13 +5,14 @@ const mealSchema = new mongoose.Schema({
   description: String,
   protein: Number,
   calories: Number,
-  carb: Number
+  carb: Number,
+  fat: Number
 });
 
 const dailyMealsSchema = new mongoose.Schema({
   meal1: mealSchema,
   meal2: mealSchema,
-  meal3: mealSchema
+  meal3: mealSchema,
 });
 
 const dietPlanSchema = new mongoose.Schema({

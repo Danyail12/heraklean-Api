@@ -172,26 +172,57 @@ export const getActivePlansdaywise = async (req, res) => {
 
 
 
-  export const getActiveNutrition = async (req, res) => {
-    try {
-      const clientId = req.client._id;
+export const getActiveNutrition = async (req, res) => {
+  try {
+    const clientId = req.client._id;
 
-      const client = await Client.findById(clientId)
-      .populate('ActiveNutrition');
-  
-      if (!client) {
-        return res.status(404).json({ message: 'Client not found' });
-      }
-  
-      res.status(200).json({
-        success: true,
-        activeNutrition: client.ActiveNutrition
-      });
-    } catch (error) {
-      console.error('Error fetching active plans:', error);
-      res.status(500).json({ message: 'Server error' });
+    // Find the client and populate the ActiveNutrition field
+    const client = await Client.findById(clientId).populate({
+      path: 'ActiveNutrition',
+      populate: { path: 'dietPlan' }
+    });
+
+    if (!client) {
+      return res.status(404).json({ message: 'Client not found' });
     }
-  };
+
+    // Check if ActiveNutrition exists and has entries
+    if (!client.ActiveNutrition || client.ActiveNutrition.length === 0) {
+      return res.status(404).json({ message: 'No active nutrition plans found' });
+    }
+
+    // Helper function to transform meal objects into arrays
+    const formatMeals = (dayMeals) => {
+      if (!dayMeals) return [];
+      return [dayMeals.meal1, dayMeals.meal2, dayMeals.meal3].filter(meal => meal);  // Filter out any undefined meals
+    };
+
+    // Safely map over ActiveNutrition and format each day's meals
+    const formattedNutrition = client.ActiveNutrition.map(plan => ({
+      _id: plan._id,
+      dietTitle: plan.dietTitle,
+      monday: formatMeals(plan.monday),
+      tuesday: formatMeals(plan.tuesday),
+      wednesday: formatMeals(plan.wednesday),
+      thursday: formatMeals(plan.thursday),
+      friday: formatMeals(plan.friday),
+      saturday: formatMeals(plan.saturday),
+      sunday: formatMeals(plan.sunday)
+    }));
+
+    res.status(200).json({
+      success: true,
+      activeNutrition: formattedNutrition
+    });
+
+  } catch (error) {
+    console.error('Error fetching active nutrition plans:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+
+
 
   export const getActiveNutritiondaywise = async (req, res) => {
     try {
@@ -497,10 +528,7 @@ export const getUpcomingMeetingsForClient = async (req, res) => {
       });
     }
 
-    console.log('Client commingMeeting IDs:', 
-      
-      client.commingMeeting
-    );
+    console.log('Client commingMeeting IDs:', client.commingMeeting);
 
     // Fetch all meetings from the Meeting collection without date filter
     const allMeetings = await Meeting.find({
@@ -520,8 +548,30 @@ export const getUpcomingMeetingsForClient = async (req, res) => {
       trainingType: meeting.trainingType,
       isRecurring: meeting.isRecurring,
       trainer: meeting.trainer ? {
-        name: `${meeting.trainer.Fname} ${meeting.trainer.Lname}`,
-        email: meeting.trainer.email
+        name: `${meeting.trainer.Fname || ''} ${meeting.trainer.Lname || ''}`,
+        email: meeting.trainer.email || ''
+      } : null
+    }));
+
+    // Extract the meeting IDs from meetingRequest and find corresponding meetings
+    const meetingIds = client.meetingRequest.map(meeting => meeting.meetingId);
+    
+    // Fetch all meetingRequest data and populate trainer information
+    const meetingRequests = await Meeting.find({
+      _id: { $in: meetingIds }
+    }).populate('trainer', 'Fname Lname email').lean();
+
+    // Format meeting requests with trainer details
+    const requestedMeetings = meetingRequests.map(meeting => ({
+      _id: meeting._id,
+      day: meeting.day,
+      time: meeting.time,
+      status: meeting.status,
+      trainingType: meeting.trainingType,
+      isRecurring: meeting.isRecurring,
+      trainer: meeting.trainer ? {
+        name: `${meeting.trainer.Fname || ''} ${meeting.trainer.Lname || ''}`,
+        email: meeting.trainer.email || ''
       } : null
     }));
 
@@ -534,13 +584,13 @@ export const getUpcomingMeetingsForClient = async (req, res) => {
       message: 'All meetings fetched successfully',
       allMeetings: formattedMeetings,
       upcomingMeetings: upcomingMeetings,
-      meetingRequest: client.meetingRequest,
+      meetingRequest: requestedMeetings, // Include formatted meeting requests
       totalMeetings: formattedMeetings.length,
       upcomingMeetingsCount: upcomingMeetings.length
     });
 
   } catch (error) {
-    console.error(error);
+    console.error('Error fetching meetings:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching meetings',
@@ -782,4 +832,45 @@ export const getWorkout = async (req, res) => {
   }catch(error){    
     res.status(500).json({ success: false, message: 'Error retrieving workout', error: error.message });
   }
+}
+
+
+
+export const getProfile = async (req,res)=>{
+  try{
+    const clientId = req.client._id;
+    const Clients = await Client.findById(clientId);
+    if(!Clients){
+      return res.status(404).json({ success: false, message: 'Client not found' });
+    }
+res.status(201).json({
+  success:true,
+  client: {
+    id: Clients._id,
+    fullname: Clients.fullname,
+    email: Clients.email,
+    profilePic: Clients.profilePic,
+    startingWeight: Clients.startingWeight,
+    subscription: Clients.subscription,
+    subamount: Clients.subamount,
+    ActivePlan: Clients.ActivePlan,
+    ActiveNutrition: Clients.ActiveNutrition,
+    measurements: Clients.measurements,
+    weightGraph: Clients.weightGraph,
+    membershipExpiresOn: Clients.membershipExpiresOn,
+    trainer: Clients.trainer,
+    commingMeeting: Clients.commingMeeting,
+    weightGraph:Clients.weightGraph,
+    weight:Clients.weight,
+    notification:Clients.notification,
+  }
+})
+  }
+catch(error){
+res.status(500).json({
+  success:false,
+  message:error.message
+})
+}
+  
 }

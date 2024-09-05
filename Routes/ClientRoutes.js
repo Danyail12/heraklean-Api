@@ -3,7 +3,7 @@ import { register, login,getActiveNutrition,getActivePlans,forgetPassword,
    resetPassword ,changePassword,logout,updateClientProfile,createMeeting,
    rescheduleMeeting,getUpcomingMeetingsForClient,cancelMeeting,addWorkout,
    addWeightEntry,getWeightEntries,updateWeightEntry,getAllNotifications,
-   getActiveNutritiondaywise,getActivePlansdaywise,getWorkout
+   getActiveNutritiondaywise,getActivePlansdaywise,getWorkout,getProfile
 } from '../Controllers/Client.js';
 import {clientAuthMiddleware} from '../Middlewares/authMiddleware.js';
 const router = express.Router();
@@ -15,9 +15,9 @@ router.post('/register', register);
 router.post('/login', login);
 
 // Protected routes (example)
-router.get('/profile', clientAuthMiddleware, (req, res) => {
-  res.json(req.client);
-});
+// router.get('/profile', clientAuthMiddleware, (req, res) => {
+//   res.json(req.client);
+// });
 router.post('/logout',clientAuthMiddleware,logout)
 
 router.get('/active-plans', clientAuthMiddleware, getActivePlans);
@@ -38,5 +38,6 @@ router.get('/getAllNotifications/:clientId',clientAuthMiddleware,getAllNotificat
 router.get('/getActiveNutritiondaywise',clientAuthMiddleware,getActiveNutritiondaywise)
 router.get('/getActivePlansdaywise',clientAuthMiddleware,getActivePlansdaywise)
 router.get('/getWorkout',clientAuthMiddleware,getWorkout)
+router.get('/getProfile',clientAuthMiddleware,getProfile)
 
 export default router;

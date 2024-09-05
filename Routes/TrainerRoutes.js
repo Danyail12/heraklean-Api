@@ -7,7 +7,8 @@ import { register, login,createClient,createDietPlan,createProgramPlan,getTraine
     logout,
     forgetPassword,
     resetPassword,
-    approveMeetingRequest
+    approveMeetingRequest,
+    createMeetingRequest
 } from '../Controllers/TrainerAuth.js';
 import authMiddleware from '../Middlewares/authMiddleware.js';
 const router = express.Router();
@@ -27,5 +28,5 @@ router.get('/logout',authMiddleware, logout);
 router.post('/forgetPassword', forgetPassword);
 router.post('/resetPassword', resetPassword);
 router.post('/approveMeetingRequest',authMiddleware, approveMeetingRequest);
-
+router.post('/createMeetingRequest',authMiddleware, createMeetingRequest);
 export default router;

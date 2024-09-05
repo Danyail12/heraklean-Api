@@ -725,4 +725,63 @@ export const createProgramPlan = async (req, res) => {
               res.status(500).json({ success: false, message: 'Error approving meeting request', error: error.message });
             }
           };
+
+
+          export const createMeetingRequest = async (req, res) => {
+            try {
+              const { clientId, trainerId, day, time, date,trainingType, isRecurring } = req.body;
+          
+              // Check if both client and trainer exist
+              const client = await Client.findById(clientId);
+              const trainer = await Trainer.findById(trainerId);
+          
+              if (!client || !trainer) {
+                return res.status(404).json({ success: false, message: 'Client or Trainer not found' });
+              }
+          
+              // Create a new meeting
+              const meeting = new Meeting({
+                client: clientId,
+                trainer: trainerId,
+                day,
+                time,
+                date,
+                status: 'Pending',
+                trainingType,
+                isRecurring,
+              });
+          
+              // Save the meeting
+              const savedMeeting = await meeting.save();
+          
+              // Add the meeting to both the client's and trainer's `meetingRequest` field
+              client.meetingRequest.push({
+                meetingId: savedMeeting._id,
+                day,
+                time,
+                date,
+                status: 'Pending',
+                trainingType,
+                isRecurring,
+              });
+          
+              trainer.meetingRequest.push({
+                meetingId: savedMeeting._id,
+                day,
+                time,
+                date,
+                status: 'Pending',
+                trainingType,
+                isRecurring,
+              });
+          
+              // Save both client and trainer
+              await client.save();
+              await trainer.save();
+          
+              res.status(200).json({ success: true, message: 'Meeting request created successfully', meeting: savedMeeting });
+            } catch (error) {
+              res.status(500).json({ success: false, message: 'Error creating meeting request', error: error.message });
+            }
+          };
           

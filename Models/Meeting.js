@@ -19,6 +19,11 @@ const meetingSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  date:{
+    type: Date,
+    required: true,
+    // default: Date.now
+  },
   status: {
     type: String,
     enum: ['Pending', 'Approved', 'Declined', 'Cancelled'],
