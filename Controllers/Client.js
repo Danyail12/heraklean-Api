@@ -516,6 +516,7 @@ export const getUpcomingMeetingsForClient = async (req, res) => {
       _id: meeting._id,
       day: meeting.day,
       time: meeting.time,
+      status: meeting.status,
       trainingType: meeting.trainingType,
       isRecurring: meeting.isRecurring,
       trainer: meeting.trainer ? {
@@ -533,6 +534,7 @@ export const getUpcomingMeetingsForClient = async (req, res) => {
       message: 'All meetings fetched successfully',
       allMeetings: formattedMeetings,
       upcomingMeetings: upcomingMeetings,
+      meetingRequest: client.meetingRequest,
       totalMeetings: formattedMeetings.length,
       upcomingMeetingsCount: upcomingMeetings.length
     });
