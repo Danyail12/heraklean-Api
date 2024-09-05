@@ -497,7 +497,10 @@ export const getUpcomingMeetingsForClient = async (req, res) => {
       });
     }
 
-    console.log('Client commingMeeting IDs:', client.commingMeeting);
+    console.log('Client commingMeeting IDs:', 
+      
+      client.commingMeeting
+    );
 
     // Fetch all meetings from the Meeting collection without date filter
     const allMeetings = await Meeting.find({
@@ -679,11 +682,6 @@ export const getWeightEntries = async (req, res) => {
     res.status(500).json({ success: false, message: 'Error retrieving weight entries', error: error.message });
   }
 };
-
-
-
-
-// Update a weight entry
 export const updateWeightEntry = async (req, res) => {
   try {
     const { clientId, entryId, weight } = req.body;
@@ -766,3 +764,20 @@ export const getAllNotifications = async (req, res) => {
     res.status(500).json({ success: false, message: 'Error retrieving notifications', error: error.message });
   }
 };
+
+
+export const getWorkout = async (req, res) => {
+  try{
+    const clientId = req.client._id;
+    console.log('Received clientId:', clientId);
+    const Clients = await Client.findById(clientId).populate('workout');
+    if(!Clients){
+      return res.status(404).json({ success: false, message: 'Client not found' });
+    }
+
+    res.status(200).json({ success: true, workout: Clients.workout });
+
+  }catch(error){    
+    res.status(500).json({ success: false, message: 'Error retrieving workout', error: error.message });
+  }
+}
