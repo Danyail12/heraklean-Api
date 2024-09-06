@@ -3,7 +3,8 @@ import { register, login,getActiveNutrition,getActivePlans,forgetPassword,
    resetPassword ,changePassword,logout,updateClientProfile,createMeeting,
    rescheduleMeeting,getUpcomingMeetingsForClient,cancelMeeting,addWorkout,
    addWeightEntry,getWeightEntries,updateWeightEntry,getAllNotifications,
-   getActiveNutritiondaywise,getActivePlansdaywise,getWorkout,getProfile
+   getActiveNutritiondaywise,getActivePlansdaywise,getWorkout,getProfile,
+   approveMeetingRequest
 } from '../Controllers/Client.js';
 import {clientAuthMiddleware} from '../Middlewares/authMiddleware.js';
 const router = express.Router();
@@ -39,5 +40,6 @@ router.get('/getActiveNutritiondaywise',clientAuthMiddleware,getActiveNutritiond
 router.get('/getActivePlansdaywise',clientAuthMiddleware,getActivePlansdaywise)
 router.get('/getWorkout',clientAuthMiddleware,getWorkout)
 router.get('/getProfile',clientAuthMiddleware,getProfile)
+router.post('/approveMeetingRequest',clientAuthMiddleware,approveMeetingRequest)
 
 export default router;

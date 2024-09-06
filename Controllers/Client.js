@@ -109,7 +109,6 @@ export const logout = async (req, res) => {
       success: true
     });
   }
-// You can add more client-related controller functions here as needed
 
 
 export const getActivePlans = async (req, res) => {
@@ -642,6 +641,8 @@ export const cancelMeeting = async (req, res) => {
 };
 
 
+
+
 export const addWorkout = async (req, res) => {
   try {
     const { clientId, workoutDate, exercises } = req.body;
@@ -875,3 +876,84 @@ res.status(500).json({
 }
   
 }
+
+
+export const approveMeetingRequest = async (req, res) => {
+  try {
+    const { clientId, meetingRequestId } = req.body;
+
+    // Convert meetingRequestId to ObjectId using 'new'
+    const meetingObjectId = new mongoose.Types.ObjectId(meetingRequestId);
+
+    // Fetch the client by their ID
+    const client = await Client.findById(clientId);
+    if (!client) {
+      return res.status(404).json({ success: false, message: 'Client not found' });
+    }
+
+    // Check if meetingRequest exists and is an array
+    if (!client.meetingRequest || !Array.isArray(client.meetingRequest)) {
+      return res.status(400).json({ success: false, message: 'Client has no meeting requests' });
+    }
+
+    console.log("Client meeting requests:", JSON.stringify(client.meetingRequest, null, 2));
+
+    // Find the meeting request in the client's meetingRequest array
+    const meetingRequestIndex = client.meetingRequest.findIndex(
+      request => request.meetingId.equals(meetingObjectId)
+    );
+
+    console.log("Meeting request IDs:", client.meetingRequest.map(req => req.meetingId));
+    console.log("Searched ID:", meetingObjectId);
+    console.log("Found index:", meetingRequestIndex);
+
+    if (meetingRequestIndex === -1) {
+      return res.status(404).json({ success: false, message: 'Meeting request not found' });
+    }
+
+    const meetingRequest = client.meetingRequest[meetingRequestIndex];
+
+    // Validate the meetingRequest data
+    if (!meetingRequest || !meetingRequest.day || !meetingRequest.time || !meetingRequest.trainingType) {
+      return res.status(400).json({ success: false, message: 'Invalid meeting request data', meetingRequest });
+    }
+
+    // Create a new meeting with the status 'Approved'
+    const newMeeting = new Meeting({
+      client: clientId,
+      trainer: client.trainer,
+      day: meetingRequest.day,
+      time: meetingRequest.time,
+      date: meetingRequest.date,
+      trainingType: meetingRequest.trainingType,
+      isRecurring: meetingRequest.isRecurring,
+      status: 'Approved'
+    });
+
+    await newMeeting.save();
+
+    // Notify both client and trainer about the approved meeting
+    const notificationMessage = `Meeting approved for ${meetingRequest.day} at ${meetingRequest.time}`;
+
+    // Update client with new meeting and remove the meeting request
+    const clientUpdate = Client.findByIdAndUpdate(clientId, {
+      $push: { commingMeeting: newMeeting._id, notification: notificationMessage },
+      $pull: { meetingRequest: { meetingId: meetingObjectId } }
+    });
+
+    // Update trainer with new meeting and notification
+    const trainerUpdate = Trainer.findByIdAndUpdate(client.trainer, {
+      $push: { commingMeeting: newMeeting._id, notification: notificationMessage }
+    });
+
+    // Execute updates in parallel
+    await Promise.all([clientUpdate, trainerUpdate]);
+
+    res.status(200).json({ success: true, message: 'Meeting request approved', meeting: newMeeting });
+  } catch (error) {
+    console.error("Detailed error:", error);
+    res.status(500).json({ success: false, message: 'Error approving meeting request', error: error.message, stack: error.stack });
+  }
+};
+
+
