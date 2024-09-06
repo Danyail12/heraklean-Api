@@ -70,7 +70,7 @@ export const login = async (req, res) => {
 
     // Create and return JWT
     const payload = { clientId: client._id };
-    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '8h' });
 
     res.status(200).json({
       message: 'Login successful',
@@ -559,7 +559,7 @@ export const getUpcomingMeetingsForClient = async (req, res) => {
     // Fetch all meetingRequest data and populate trainer information
     const meetingRequests = await Meeting.find({
       _id: { $in: meetingIds }
-    }).populate('trainer', 'Fname Lname email').lean();
+    }).populate('trainer', 'Fname Lname email _id').lean();
 
     // Format meeting requests with trainer details
     const requestedMeetings = meetingRequests.map(meeting => ({
@@ -571,7 +571,8 @@ export const getUpcomingMeetingsForClient = async (req, res) => {
       isRecurring: meeting.isRecurring,
       trainer: meeting.trainer ? {
         name: `${meeting.trainer.Fname || ''} ${meeting.trainer.Lname || ''}`,
-        email: meeting.trainer.email || ''
+        email: meeting.trainer.email || '',
+        _id: meeting.trainer._id
       } : null
     }));
 
