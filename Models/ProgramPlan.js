@@ -16,7 +16,8 @@ const dayPlanSchema = new mongoose.Schema({
   duration: {
     type: String, // E.g., "6 weeks"
     required: true
-  }
+  },
+  
 });
 
 const programPlanSchema = new mongoose.Schema({

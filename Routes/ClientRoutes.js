@@ -4,7 +4,7 @@ import { register, login,getActiveNutrition,getActivePlans,forgetPassword,
    rescheduleMeeting,getUpcomingMeetingsForClient,cancelMeeting,addWorkout,
    addWeightEntry,getWeightEntries,updateWeightEntry,getAllNotifications,
    getActiveNutritiondaywise,getActivePlansdaywise,getWorkout,getProfile,
-   approveMeetingRequest
+   approveMeetingRequest,createCustomdiet,customdiet
 } from '../Controllers/Client.js';
 import {clientAuthMiddleware} from '../Middlewares/authMiddleware.js';
 const router = express.Router();
@@ -41,5 +41,6 @@ router.get('/getActivePlansdaywise',clientAuthMiddleware,getActivePlansdaywise)
 router.get('/getWorkout',clientAuthMiddleware,getWorkout)
 router.get('/getProfile',clientAuthMiddleware,getProfile)
 router.post('/approveMeetingRequest',clientAuthMiddleware,approveMeetingRequest)
-
+router.post('/createCustomdiet',clientAuthMiddleware,createCustomdiet)
+router.post('/customdiet',clientAuthMiddleware,customdiet)
 export default router;

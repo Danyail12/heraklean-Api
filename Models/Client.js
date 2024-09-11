@@ -78,6 +78,9 @@
     meetingRequest:[{
       type:Object,
     }],
+    customdiet:[{
+      type:Object,
+    }],
 
   });
 

@@ -957,3 +957,54 @@ export const approveMeetingRequest = async (req, res) => {
 };
 
 
+export const customdiet = async (req, res) => {
+  try {
+    const { clientId } = req.body;
+
+    // Fetch the client by their ID
+    const client = await Client.findById(clientId);
+    if (!client) {
+      return res.status(404).json({ success: false, message: 'Client not found' });
+    }
+
+    // Check if customdiet exists and is an array
+    if (!client.customdiet || !Array.isArray(client.customdiet)) {
+      return res.status(400).json({ success: false, message: 'Client has no customdiet' });
+    }
+
+    res.status(200).json({ success: true, message: 'Client customdiet', customdiet: client.customdiet });
+  } catch (error) {   
+    res.status(500).json({ success: false, message: 'Error getting customdiet', error: error.message });
+  }
+
+};
+
+
+
+export const createCustomdiet = async (req, res) => {
+  try {
+    const { clientId, customdiet } = req.body;
+
+    // Fetch the client by their ID
+    const client = await Client.findById(clientId);
+    if (!client) {
+      return res.status(404).json({ success: false, message: 'Client not found' });
+    }
+
+    // Check if customdiet exists and is an array
+    if (!client.customdiet || !Array.isArray(client.customdiet)) {
+      return res.status(400).json({ success: false, message: 'Client has no customdiet' });
+    }
+
+    // Add the customdiet to the client's customdiet array
+    client.customdiet.push(customdiet);
+    await client.save();
+
+    res.status(200).json({ success: true, message: 'Customdiet created successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error creating customdiet', error: error.message });
+  }
+
+};
+
+
