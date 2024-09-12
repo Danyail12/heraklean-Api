@@ -645,7 +645,7 @@ export const cancelMeeting = async (req, res) => {
 
 export const addWorkout = async (req, res) => {
   try {
-    const { clientId, workoutDate, exercises } = req.body;
+    const { clientId, workoutDate, exercises,day } = req.body;
 
     // Validate client
     const client = await Client.findById(clientId);
@@ -658,6 +658,7 @@ export const addWorkout = async (req, res) => {
     // Create a single workout object
     const workout = {
       date: parsedWorkoutDate,
+      day:day,
       exercises: exercises.map(exercise => ({
         exercise: exercise.exercise,
         sets: exercise.sets.map((set, index) => ({  // Add index here
@@ -829,7 +830,11 @@ export const getWorkout = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Client not found' });
     }
 
-    res.status(200).json({ success: true, workout: Clients.workout });
+    const currentDate = new Date();
+
+    const todaysWorkout = Clients.workout.filter(workout => workout.date.toDateString() === currentDate.toDateString());
+
+    res.status(200).json({ success: true, workout: todaysWorkout });
 
   }catch(error){    
     res.status(500).json({ success: false, message: 'Error retrieving workout', error: error.message });

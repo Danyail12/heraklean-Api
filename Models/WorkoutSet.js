@@ -22,6 +22,9 @@ const workoutSetSchema = new mongoose.Schema({
         type: Date,
         required: true,
         default: Date.now
+    },
+    day: {
+        type: String
     }
 });
 
