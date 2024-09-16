@@ -384,6 +384,7 @@ export const getActiveNutrition = async (req, res) => {
         if(req.body.fullname) client.fullname = req.body.fullname;
         if (req.body.email) client.email = req.body.email;
         if (req.body.profilePic) client.profilePic = req.body.profilePic;
+        if (req.body.number) client.number = req.body.number;
 
         // Update weight according to date
         if (req.body.weight) {
@@ -681,6 +682,58 @@ export const addWorkout = async (req, res) => {
     res.status(500).json({ success: false, message: 'Error adding workout', error: error.message });
   }
 };
+export const addWorkoutSet = async (req, res) => {
+  try {
+    const { clientId, workoutDate, day, exerciseName, newSets } = req.body;
+
+    // Validate client
+    const client = await Client.findById(clientId);
+    if (!client) {
+      return res.status(404).json({ success: false, message: 'Client not found' });
+    }
+
+    const parsedWorkoutDate = new Date(workoutDate);
+
+    // Find the workout for the specified date and day
+    const workout = client.workout.find(w => 
+      w.date.toISOString() === parsedWorkoutDate.toISOString() && w.day === day
+    );
+
+    if (!workout) {
+      return res.status(404).json({ success: false, message: 'Workout not found for the given date and day' });
+    }
+
+    // Find the exercise to add new sets to
+    const exercise = workout.exercises.find(e => e.exercise === exerciseName);
+
+    if (!exercise) {
+      return res.status(404).json({ success: false, message: 'Exercise not found in the workout' });
+    }
+
+    // Ensure new sets are appended to existing sets without overwriting
+    const existingSetCount = exercise.sets.length; // Get the current number of sets
+
+    // Add new sets to the exercise
+    newSets.forEach((set, index) => {
+      exercise.sets.push({
+        setNumber: existingSetCount + index + 1, // Correctly use index to assign setNumber
+        weight: set.weight,
+        reps: set.reps,
+        done: set.done
+      });
+    });
+
+    // Save the updated client document with the newly added sets
+    await client.save();
+
+    res.status(200).json({ success: true, message: 'New sets added successfully', workout });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Error adding new sets', error: error.message });
+  }
+};
+
+
 
 export const addWeightEntry = async (req, res) => {
   try {
@@ -965,6 +1018,7 @@ export const approveMeetingRequest = async (req, res) => {
 export const customdiet = async (req, res) => {
   try {
     const { clientId } = req.body;
+    
 
     // Fetch the client by their ID
     const client = await Client.findById(clientId);
@@ -986,9 +1040,62 @@ export const customdiet = async (req, res) => {
 
 
 
-export const createCustomdiet = async (req, res) => {
+export const createCustomDiet = async (req, res) => {
   try {
-    const { clientId, customdiet } = req.body;
+    const { clientId, title, description, category, date, day } = req.body;
+
+    // Fetch the client by their ID
+    const client = await Client.findById(clientId);
+    if (!client) {
+      return res.status(404).json({ success: false, message: 'Client not found' });
+    }
+
+    // Initialize customdiet array if it doesn't exist
+    if (!client.customdiet || !Array.isArray(client.customdiet)) {
+      client.customdiet = [];
+    }
+
+    // Find if there's already an entry for the specified day
+    const dayEntry = client.customdiet.find((diet) => diet.day === day);
+
+    if (dayEntry) {
+      // If the day exists, add the new meal to the meals array
+      dayEntry.meals.push({
+        title,
+        description,
+        category,
+        date,
+      });
+    } else {
+      // If the day doesn't exist, create a new day with the meal
+      client.customdiet.push({
+        day,
+        meals: [
+          {
+            title,
+            description,
+            category,
+            date,
+          },
+        ],
+      });
+    }
+
+    // Save the updated client document
+    await client.save();
+
+    res.status(200).json({ success: true, message: 'Custom diet created successfully', customdiet: client.customdiet });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error creating custom diet', error: error.message });
+  }
+};
+
+
+
+export const updateCustomDiet = async (req, res) => {
+  try {
+    const { clientId } = req.body;
+    const { title, description, category, date, day } = req.body;
 
     // Fetch the client by their ID
     const client = await Client.findById(clientId);
@@ -998,18 +1105,45 @@ export const createCustomdiet = async (req, res) => {
 
     // Check if customdiet exists and is an array
     if (!client.customdiet || !Array.isArray(client.customdiet)) {
-      return res.status(400).json({ success: false, message: 'Client has no customdiet' });
+      client.customdiet = []; // Initialize the customdiet array if it doesn't exist
     }
 
-    // Add the customdiet to the client's customdiet array
-    client.customdiet.push(customdiet);
+    // Check if a day entry exists for the specified day
+    const dayEntry = client.customdiet.find((diet) => diet.day === day);
+
+    if (dayEntry) {
+      // If the day exists, add the new meal to that day's meals
+      dayEntry.meals = dayEntry.meals || [];  // Ensure that 'meals' array exists
+      dayEntry.meals.push({
+        title,
+        description,
+        category,
+        date,
+      });
+    } else {
+      // If no entry for the day exists, create a new one
+      client.customdiet.push({
+        day,
+        meals: [
+          {
+            title,
+            description,
+            category,
+            date,
+          },
+        ],
+      });
+    }
+
+    // Save the client document with the updated customdiet
     await client.save();
 
-    res.status(200).json({ success: true, message: 'Customdiet created successfully' });
+    res.status(200).json({ success: true, message: 'Meal added to customdiet successfully', customdiet: client.customdiet });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error creating customdiet', error: error.message });
+    res.status(500).json({ success: false, message: 'Error updating customdiet', error: error.message });
   }
-
 };
+
+
 
 

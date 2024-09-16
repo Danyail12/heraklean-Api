@@ -5,11 +5,10 @@ import ProgramPlan from './../Models/ProgramPlan.js';
 import WeightEntry from './../Models/WeightGraph.js';
 import Meeting from './../Models/Meeting.js';
 import { sendMail } from './../Helper/sendMail.js';
-// import nodemailer from 'nodemailer';
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-// import { hash } from 'crypto';
+
 
 
 
@@ -785,3 +784,30 @@ export const createProgramPlan = async (req, res) => {
             }
           };
           
+
+
+          export const  home =async(req,res)=> {
+            try {
+                            
+              const trainerId = req.trainer._id;
+              console.log(trainerId)
+              const trainer = await Trainer.findById(trainerId);
+              const totalClients = await Trainer.countDocuments({ _id: trainerId });
+              console.log(totalClients)
+              console.log(trainer)
+          const upcomingMeetings = await Meeting.find({ trainer: trainerId, status: "Approved" });
+        
+            res.status(200).json({
+              message: 'Trainer details retrieved successfully',
+              success: true,
+              fullName: `${trainer.Fname} ${trainer.lastName}`,
+              email: trainer.email,
+              totalClients: totalClients,
+              upcomingMeetings:upcomingMeetings
+            })
+    
+            } catch (error) {
+              console.error('Error retrieving trainer details:', error);
+              throw error;
+            }
+          }

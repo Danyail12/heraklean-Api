@@ -78,9 +78,23 @@
     meetingRequest:[{
       type:Object,
     }],
-    customdiet:[{
-      type:Object,
-    }],
+    customdiet: [
+      {
+        day: { type: String },
+        meals: [
+          {
+            title: { type: String },
+            description: { type: String },
+            category: { type: String },
+            date: { type: Date },
+          },
+        ],
+      },
+    ],
+    number:{
+      type:Number
+    },
+
 
   });
 
