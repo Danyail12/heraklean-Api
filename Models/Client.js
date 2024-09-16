@@ -71,9 +71,18 @@
     diet:[{
       type:Object,
     }],
-
-    workout:[{
-      type:Object,
+    workout: [{
+      date: { type: Date, default: Date.now }, // Track the workout date
+      day: { type: String }, // Track the day of the workout (e.g., Monday)
+      exercises: [{
+        exercise: { type: String }, // Exercise name
+        sets: [{
+          setNumber: { type: Number }, // Set number
+          weight: { type: Number }, // Weight for this set
+          reps: { type: Number }, // Reps for this set
+          done: { type: Boolean, default: false } // If the set is completed
+        }]
+      }]
     }],
     meetingRequest:[{
       type:Object,

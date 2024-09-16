@@ -646,7 +646,7 @@ export const cancelMeeting = async (req, res) => {
 
 export const addWorkout = async (req, res) => {
   try {
-    const { clientId, workoutDate, exercises,day } = req.body;
+    const { clientId, workoutDate, exercises, day } = req.body;
 
     // Validate client
     const client = await Client.findById(clientId);
@@ -659,11 +659,11 @@ export const addWorkout = async (req, res) => {
     // Create a single workout object
     const workout = {
       date: parsedWorkoutDate,
-      day:day,
+      day: day,
       exercises: exercises.map(exercise => ({
         exercise: exercise.exercise,
-        sets: exercise.sets.map((set, index) => ({  // Add index here
-          setNumber: index + 1, // Correctly use index
+        sets: exercise.sets.map((set, index) => ({
+          setNumber: index + 1,  // Use index to assign setNumber
           weight: set.weight,
           reps: set.reps,
           done: set.done
@@ -682,6 +682,7 @@ export const addWorkout = async (req, res) => {
     res.status(500).json({ success: false, message: 'Error adding workout', error: error.message });
   }
 };
+
 export const addWorkoutSet = async (req, res) => {
   try {
     const { clientId, workoutDate, day, exerciseName, newSets } = req.body;
@@ -732,6 +733,7 @@ export const addWorkoutSet = async (req, res) => {
     res.status(500).json({ success: false, message: 'Error adding new sets', error: error.message });
   }
 };
+
 
 
 
@@ -1067,7 +1069,6 @@ export const createCustomDiet = async (req, res) => {
         date,
       });
     } else {
-      // If the day doesn't exist, create a new day with the meal
       client.customdiet.push({
         day,
         meals: [
