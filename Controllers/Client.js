@@ -641,9 +641,6 @@ export const cancelMeeting = async (req, res) => {
   }
 };
 
-
-
-
 export const addWorkout = async (req, res) => {
   try {
     const { clientId, workoutDate, exercises, day } = req.body;
@@ -662,6 +659,7 @@ export const addWorkout = async (req, res) => {
       day: day,
       exercises: exercises.map(exercise => ({
         exercise: exercise.exercise,
+        note: exercise.note,
         sets: exercise.sets.map((set, index) => ({
           setNumber: index + 1,  // Use index to assign setNumber
           weight: set.weight,
@@ -681,7 +679,85 @@ export const addWorkout = async (req, res) => {
     console.error(error);
     res.status(500).json({ success: false, message: 'Error adding workout', error: error.message });
   }
+}; 
+
+export const addOrUpdateExercise = async (req, res) => {
+  try {
+    const { clientId, workoutDate, day, exerciseName, note, newSets } = req.body;
+
+    // Validate the request body
+    if (!clientId || !workoutDate || !day || !exerciseName || !Array.isArray(newSets)) {
+      return res.status(400).json({ success: false, message: 'Missing or invalid required fields' });
+    }
+
+    // Validate client
+    const client = await Client.findById(clientId);
+    if (!client) {
+      return res.status(404).json({ success: false, message: 'Client not found' });
+    }
+
+    const parsedWorkoutDate = new Date(workoutDate);
+
+    // Find the existing workout for the given date and day
+    let existingWorkout = client.workout.find(
+      workout => workout.date.toISOString() === parsedWorkoutDate.toISOString() && workout.day === day
+    );
+
+    if (!existingWorkout) {
+      // If no workout exists for the given date and day, create a new one
+      existingWorkout = {
+        date: parsedWorkoutDate,
+        day: day,
+        exercises: []
+      };
+      client.workout.push(existingWorkout);
+    }
+
+    // Find the existing exercise within the workout
+    let existingExercise = existingWorkout.exercises.find(exercise => exercise.exercise === exerciseName);
+
+    if (existingExercise) {
+      // Add new sets to the existing exercise
+      newSets.forEach((set, index) => {
+        existingExercise.sets.push({
+          setNumber: existingExercise.sets.length + index + 1, // Increment set number
+          weight: set.weight,
+          reps: set.reps,
+          done: set.done
+        });
+      });
+    } else {
+      // Add a new exercise to the workout
+      existingExercise = {
+        exercise: exerciseName,
+        note: note,
+        sets: newSets.map((set, index) => ({
+          setNumber: index + 1,  // Use index to assign setNumber
+          weight: set.weight,
+          reps: set.reps,
+          done: set.done
+        }))
+      };
+      existingWorkout.exercises.push(existingExercise);
+    }
+
+    // Save the client with the updated workout
+    await client.save();
+
+    // Respond with the updated workout
+    const updatedWorkout = client.workout.find(
+      workout => workout.date.toISOString() === parsedWorkoutDate.toISOString() && workout.day === day
+    );
+
+    res.status(200).json({ success: true, message: 'Exercise added or updated successfully', workout: updatedWorkout });
+  } catch (error) {
+    console.error('Error:', error);  // Detailed error logging
+    res.status(500).json({ success: false, message: 'Error adding or updating exercise', error: error.message });
+  }
 };
+
+
+
 
 export const addWorkoutSet = async (req, res) => {
   try {

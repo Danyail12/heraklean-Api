@@ -100,9 +100,11 @@ export const createClient = async (req, res) => {
     attachProgramId, 
     fullname, 
     subamount, 
-    email 
+    email, 
+    password // Added password field
   } = req.body;
-  const trainerId = req.trainer._id; // Assuming the trainer ID is available in the request
+
+  const trainerId = req.trainer._id; // Assuming trainer ID is available in the request
 
   try {
     // Check if client already exists
@@ -117,7 +119,7 @@ export const createClient = async (req, res) => {
     }
 
     if (client) {
-      // Update the existing client with new data
+      // Update the existing client
       client.profilePic = profilePic;
       client.startingWeight = startingWeight;
       client.attachDiet.push(attachDietId);
@@ -128,9 +130,15 @@ export const createClient = async (req, res) => {
       client.ActiveNutrition.push(dietPlan);
       client.ActivePlan.push(programPlan);
 
+      // Update password if provided
+      if (password) {
+        const salt = await bcrypt.genSalt(10);
+        client.password = await bcrypt.hash(password, salt);
+      }
+
       await client.save();
 
-      // Associate the client with the trainer if not already associated
+      // Associate client with the trainer
       await Trainer.findByIdAndUpdate(trainerId, {
         $addToSet: { 
           clients: client._id,
@@ -152,6 +160,9 @@ export const createClient = async (req, res) => {
 
     } else {
       // Create a new client
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(password, salt); // Hash the password
+
       client = new Client({
         profilePic,
         startingWeight,
@@ -160,6 +171,7 @@ export const createClient = async (req, res) => {
         fullname,
         subamount,
         email,
+        password: hashedPassword, // Save the hashed password
         trainer: trainerId,
         ActiveNutrition: [dietPlan],
         ActivePlan: [programPlan],

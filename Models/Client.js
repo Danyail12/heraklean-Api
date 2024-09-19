@@ -75,7 +75,8 @@
       date: { type: Date, default: Date.now }, // Track the workout date
       day: { type: String }, // Track the day of the workout (e.g., Monday)
       exercises: [{
-        exercise: { type: String }, // Exercise name
+        exercise: { type: String },
+         note:{type:String},
         sets: [{
           setNumber: { type: Number }, // Set number
           weight: { type: Number }, // Weight for this set
